@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+if __name__ == "__main__":
+  import atexit, signal
+  
+  from piBlueAudio.bluetoothctl import BluetoothCTL
+
+  trd = BluetoothCTL()
+  trd.start()
+  signal.signal(signal.SIGINT,  trd.exit)
+  signal.signal(signal.SIGTERM, trd.exit)
+  atexit.register( trd.exit )
+  trd.power()
+  trd.discoverable()
+  trd.pairable()
+  trd.join()
+
