@@ -7,8 +7,7 @@ import os
 LOG     = logging.getLogger(__name__)
 LOG.setLevel( logging.DEBUG )
 
-LOGFILE = '/var/log/BluetoothCLT.log'
-LOGFILE = os.path.join(os.path.expanduser('~'), 'Library', 'Application Support', 'BluetoothCTL', 'BluetoothCLT.log')
+LOGFILE = '/tmp/BluetoothCLT.log'
 
 os.makedirs( os.path.dirname( LOGFILE ), exist_ok = True )
 
