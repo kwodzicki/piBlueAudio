@@ -5,6 +5,8 @@ import os, re, time
 from subprocess import Popen, PIPE, STDOUT
 from threading import Thread, Event
 
+from .audio import volume_max
+
 CMD     = ['bluetoothctl']
 MAC     = re.compile( '((?:[0-9A-F]{2}[:]?){6})' )
 SLEEP   = 1.0
@@ -16,9 +18,13 @@ class BluetoothCTL( Thread ):
     self._proc = None
     self._info = {'devices' : {}, 'controllers' : {}}
 
+  def start(self, *args, **kwargs):
+    super().start(*args, **kwargs)                                              # Start the thread
+    time.sleep( SLEEP )                                                         # Wait to make sure it's started
+
   def run(self):
+    self.log.debug('Thread started!')
     self._proc = Popen( CMD, stdin=PIPE, stdout=PIPE, stderr=STDOUT, universal_newlines=True)
-    time.sleep( SLEEP )
     line = self._proc.stdout.readline()                                         # Read line from stdout
     while line != '':                                                           # While line is NOT emtpy
       self.parseLine( line )                                                    # Parse the line
@@ -26,6 +32,7 @@ class BluetoothCTL( Thread ):
     self._proc.stdin.close()                                                    # Close stdin
     self._proc.stdout.close()                                                   # Close stdout
     self._proc = None                                                           # Set proc to None
+    self.log.debug('Thread dead!')
 
   def sendCMD(self, cmd):
     """
@@ -91,14 +98,15 @@ class BluetoothCTL( Thread ):
       else:                                                                     # Else
         self.log.warning( f'Unknown object type: {obj}' )                       # Log error
         return                                                                  # Return
+      self._macCheck(mac, dev)
       if 'NEW' in status:                                                       # If NEW is in status
         self.log.info( f'New device being added: {mac}' )                       # Log info
-        dev[mac] = {}                                                           # Initialize new subdictionary under dev
         if obj == 'Device':                                                     # If is Device object
           self.trust( mac )                                                     # Trust the device
       elif 'DEL' in status:                                                     # Else, if DEL in status
         self.log.info( f'Device being deleted: {mac}' )                         # Log info
-        del dev[mac]                                                            # Remove device from dictionary
+        if mac in dev:
+          del dev[mac]                                                          # Remove device from dictionary
       elif 'CHG' in status:                                                     # Else, if CHG in status
         self.log.debug( f'Device state changed: {info}' )                       # Log debug
         if info[0][-1] == ':':                                                  # If colon (:) in first element of info
@@ -114,10 +122,15 @@ class BluetoothCTL( Thread ):
       else:                                                                     # Else
         self.log.warning( f'Unrecognized command: {line}' )                     # Log warning
 
+  def _macCheck(self, mac, dev):
+    if mac not in dev:
+      dev[mac] = {}
+
   def _connected(self, state):
     if state:                                                                   # If a device has connected, disable discoverable
       self.log.debug('Device connected, discoverable disabled' )
       self.discoverable( 'off' )                                                # Turn off discoveralbe
+      volume_max()
     else:                                                                       # Else, a device has DISconnected
       nn = 0                                                                    # Initialize counters
       for dev in self._info['devices'].values():                                # Iterate over values in devices dictionary; don't care about device MAC, just device status
@@ -146,6 +159,7 @@ class BluetoothCTL( Thread ):
 
     """
 
+    self.log.debug(f'Changing power state: {state}')
     self.sendCMD( f'power {state}' )
 
   def discoverable(self, state='on'):
