@@ -27,7 +27,7 @@ def volume_max():
   # Set the audio OUTPUT on raspberry pi
   # amixer cset numid=3 <n> 
   # where n is 0=auto, 1=headphones, 2=hdmi. 
-  SP.call( ["amixer", "-c", str(AUDIO_OUTPUT), "cset", "numid=1", "90%"] )
+  SP.call( ["amixer", "-c", str(AUDIO_OUTPUT), "cset", "numid=1", "100%"] )
 
   # Set volume level to 100 percent
   SP.call( ["amixer", "set", "Master", "100%"] )
